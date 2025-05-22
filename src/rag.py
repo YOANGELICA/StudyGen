@@ -56,12 +56,12 @@ def extract_main_topics(docs: str, llm=None):
         llm = ChatOllama(model="llama3.2:latest", temperature=0.3)
 
     prompt = f"""
-        Analiza el siguiente texto académico y extrae exactamente **3 temas o conceptos principales** del contenido.
+        Analiza las siguientes fuentes y extrae exactamente **3 temas o conceptos principales** del contenido.
 
         Devuélvelos en forma de lista numerada, SIN agregar introducciones antes de mencionar los conceptos.
 
         Texto:
-        {docs[:3000]}
+        {docs}
     """
     messages = [HumanMessage(content=prompt)]
     response = llm.invoke(messages)
@@ -83,19 +83,39 @@ def generate_questions(selected_topic: str, vector_store, llm=None, top_p=0.9, t
     retrieved_docs = "\n\n".join([doc.page_content for doc, score in results])
 
     prompt = f"""
-        Genera 3 preguntas tipo examen sobre el tema: "{selected_topic}", usando únicamente el siguiente contenido académico.
+        Genera exactamente 3 preguntas tipo examen sobre el tema: "{selected_topic}" usando únicamente el siguiente contenido académico.
 
-        Para cada pregunta incluye los siguientes elementos, en este formato exactamente:
-        1. Pregunta: ...
-        2. Tipo: [ensayo | selección múltiple | verdadero/falso]
-        3. Respuesta: ...
-        4. Explicación: ...
+        Sigue esta estructura EXACTA, sin encabezados, sin indicaciones adicionales ni numeraciones duplicadas. 
+        Cada pregunta debe seguir el siguiente patrón (NO LO MODIFIQUES):
 
-        No incluyas introducciones ni conclusiones.
+        1. Pregunta: <enunciado (pregunta de análisis del tema)>
+        Tipo: Ensayo 
+        Respuesta: <respuesta>
+        Explicación: <explicación>
 
-        Contenido:
+        2. Pregunta: <enunciado>
+        Tipo: Selección múltiple 
+        Alternativas:
+        A) ...
+        B) ...
+        C) ...
+        D) ...
+        Respuesta: <respuesta>
+        Explicación: <explicación>
+        
+        3. Pregunta: <enunciado>
+        Tipo: Verdadero/Falso
+        Respuesta: <Verdadero o Falso>
+        Explicación: <explicación>
+
+        Las **preguntas tipo ensayo** (o "Tipo: Ensayo") requieren respuestas desarrolladas, argumentativas o explicativas, con múltiples oraciones.
+        Las **preguntas tipo selección múltiple** (o "Tipo: Selección múltiple") deben incluir 4 alternativas, de las cuales solo una es correcta.
+        Las **preguntas tipo verdadero/falso** (o "Tipo: Verdadero/Falso") deben ser claras y poder ser respondidas con "Verdadero" o "Falso".
+
+        Ahora genera tus las preguntas a partir del siguiente contenido:
         {retrieved_docs}
         """
+
     messages = [HumanMessage(content=prompt)]
     stream = llm.stream(messages)
 
@@ -106,3 +126,12 @@ def generate_questions(selected_topic: str, vector_store, llm=None, top_p=0.9, t
     }
 
     return stream, metadata
+
+
+
+        # Ejemplo:
+
+        # 1. Pregunta: ¿Qué es el aprendizaje automático?
+        # Tipo: Ensayo
+        # Respuesta: Es una rama de la inteligencia artificial que permite a las máquinas aprender de los datos.
+        # Explicación: El aprendizaje automático usa algoritmos para identificar patrones y hacer predicciones sin intervención humana explícita.

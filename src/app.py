@@ -18,35 +18,53 @@ st.set_page_config(page_title="StudyGen", page_icon="📘")
 st.title("📘 StudyGen – Guía de Estudios Personalizada")
 
 st.markdown("""
-Sube tus materiales de clase o pega enlaces. Puedes combinar PDFs, páginas web o videos de YouTube (máx. 5 min).
-Selecciona un tema para generar preguntas tipo examen.
-""")
+    Sube tus materiales de clase o pega enlaces. Puedes combinar PDFs, páginas web o videos de YouTube (máx. 5 min).
+    Selecciona un tema para generar preguntas tipo examen.
+
+    ---
+    """)
 
 # === Carga de contenido ===
 st.header("📚 Agrega contenido")
 
+
+if "any_content_loaded" not in st.session_state:
+    st.session_state.any_content_loaded = False
+
+
+# === PDF ===
 with st.expander("📄 Subir archivo PDF"):
-    uploaded_file = st.file_uploader("Selecciona un archivo PDF", type=["pdf"])
-    if uploaded_file is not None:
+    uploaded_file = st.file_uploader("Selecciona un archivo PDF", type=["pdf"], key="pdf_uploader")
+
+    if uploaded_file is not None and "pdf_uploaded" not in st.session_state:
+        st.session_state.pdf_uploaded = True 
+
         with open("temp_uploaded.pdf", "wb") as f:
             f.write(uploaded_file.read())
+
         with st.spinner("Procesando PDF..."):
             splits = load_pdf("temp_uploaded.pdf")
             st.session_state.vector_store = embed_documents(splits, st.session_state.get("vector_store"))
             st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([s.page_content for s in splits])
+
         os.remove("temp_uploaded.pdf")
+        st.session_state.any_content_loaded = True
         st.success("PDF cargado correctamente.")
 
+# === Página Web ===
 with st.expander("🌐 Pegar enlace de página web"):
     url = st.text_input("Enlace web")
+
     if st.button("Agregar página web"):
         if url:
             with st.spinner("Procesando página web..."):
                 docs = load_web_url(url)
                 st.session_state.vector_store = embed_documents(docs, st.session_state.get("vector_store"))
                 st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([d.page_content for d in docs])
+            st.session_state.any_content_loaded = True
             st.success("Página agregada correctamente.")
 
+# === YouTube ===
 with st.expander("▶️ Pegar enlace de YouTube (máx. 5 min)"):
     yt_url = st.text_input("Enlace de video")
     if st.button("Agregar video"):
@@ -58,6 +76,7 @@ with st.expander("▶️ Pegar enlace de YouTube (máx. 5 min)"):
                         raise ValueError("No se pudo obtener la transcripción del video.")
                     st.session_state.vector_store = embed_documents(docs, st.session_state.get("vector_store"))
                     st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([d.page_content for d in docs])
+                    st.session_state.any_content_loaded = True
                     st.success("Video agregado correctamente.")
                 except Exception as e:
                     st.error("❌ No se pudo procesar el video. Asegúrate de que:")
@@ -70,7 +89,7 @@ with st.expander("▶️ Pegar enlace de YouTube (máx. 5 min)"):
                     st.exception(e)
 
 # === Modo avanzado ===
-st.sidebar.header("⚙️ Opciones avanzadas (docentes)")
+st.sidebar.header("⚙️ Opciones avanzadas")
 modo_avanzado = st.sidebar.checkbox("Mostrar configuración del modelo")
 
 if modo_avanzado:
@@ -80,10 +99,20 @@ if modo_avanzado:
 else:
     temperature, top_p, top_k = 0.7, 0.9, 40
 
-# === Extraer temas principales ===
-if "vector_store" in st.session_state and "temas" not in st.session_state:
-    with st.spinner("🧠 Extrayendo temas principales..."):
-        st.session_state.temas = extract_main_topics(st.session_state.document_text)
+
+col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1, 1, 1, 1, 1])
+with col4:
+    iniciar = st.button("Iniciar", type="primary")
+
+st.markdown("---")
+
+if iniciar:
+    if not st.session_state.get("any_content_loaded", False):
+        st.warning("⚠️ Primero debes subir al menos una (1) fuente (PDF, video o página web).")
+    else:
+        with st.spinner("🧠 Extrayendo temas principales..."):
+            st.session_state.temas = extract_main_topics(st.session_state.document_text)
+
 
 # === Mostrar temas y generar preguntas ===
 if "temas" in st.session_state:
@@ -106,20 +135,29 @@ if "resultado" in st.session_state:
     st.subheader("📋 Preguntas generadas")
 
     blocks = re.split(r"\n(?=\d+\.\s*Pregunta:)", st.session_state.resultado)
-    
+
     for i, block in enumerate(blocks, start=1):
         if not block.strip():
             continue
 
         pregunta_match = re.search(r"Pregunta:\s*(.*)", block)
+        alternativas_match = re.search(r"Alternativas:(.*?)(?:Respuesta:|Explicación:)", block, re.DOTALL)
         respuesta_match = re.search(r"Respuesta:\s*(.*)", block)
         explicacion_match = re.search(r"Explicación:\s*(.*)", block)
 
         pregunta = pregunta_match.group(1).strip() if pregunta_match else f"Pregunta {i}"
+        alternativas = alternativas_match.group(1).strip() if alternativas_match else None
         respuesta = respuesta_match.group(1).strip() if respuesta_match else "No encontrada"
         explicacion = explicacion_match.group(1).strip() if explicacion_match else "No disponible"
 
         st.markdown(f"**❓ Pregunta {i}:** {pregunta}")
+
+        if alternativas:
+            st.markdown("**🔢 Alternativas:**")
+            for linea in alternativas.splitlines():
+                if linea.strip():
+                    st.markdown(f"- {linea.strip()}")
+
         with st.expander("Mostrar respuesta y explicación"):
             st.markdown(f"**✅ Respuesta:** {respuesta}")
             st.markdown(f"**💡 Explicación:** {explicacion}")
