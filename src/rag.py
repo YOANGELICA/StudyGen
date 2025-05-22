@@ -58,10 +58,10 @@ def extract_main_topics(docs: str, llm=None):
     prompt = f"""
         Analiza las siguientes fuentes y extrae exactamente **3 temas o conceptos principales** del contenido.
 
-        Devuélvelos en forma de lista numerada, SIN agregar introducciones antes de mencionar los conceptos.
+        Devuélvelos **ESPECIFICAMENTE** en forma de lista numerada, SIN introducciones o conclusiones.
 
         Texto:
-        {docs}
+        {docs[:3000]}
     """
     messages = [HumanMessage(content=prompt)]
     response = llm.invoke(messages)
@@ -126,12 +126,3 @@ def generate_questions(selected_topic: str, vector_store, llm=None, top_p=0.9, t
     }
 
     return stream, metadata
-
-
-
-        # Ejemplo:
-
-        # 1. Pregunta: ¿Qué es el aprendizaje automático?
-        # Tipo: Ensayo
-        # Respuesta: Es una rama de la inteligencia artificial que permite a las máquinas aprender de los datos.
-        # Explicación: El aprendizaje automático usa algoritmos para identificar patrones y hacer predicciones sin intervención humana explícita.

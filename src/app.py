@@ -24,13 +24,12 @@ st.markdown("""
     ---
     """)
 
+
 # === Carga de contenido ===
 st.header("📚 Agrega contenido")
 
-
 if "any_content_loaded" not in st.session_state:
     st.session_state.any_content_loaded = False
-
 
 # === PDF ===
 with st.expander("📄 Subir archivo PDF"):
