@@ -50,19 +50,28 @@ def embed_documents(splits, existing_store=None, persist_dir: str = "../chroma_l
         vector_store.add_documents(splits)
         return vector_store
 
-
-def extract_main_topics(docs: str, llm=None):
+def extract_main_topics(document_blocks: list[str], llm=None):
     if llm is None:
         llm = ChatOllama(model="llama3.2:latest", temperature=0.3)
 
+    # Armar prompt estructurado por fuente
+    fuentes_contenido = ""
+    for i, bloque in enumerate(document_blocks, start=1):
+        if bloque.strip():
+            fuentes_contenido += f"Fuente {i}:\n{bloque[:2000].strip()}\n\n"
+
     prompt = f"""
-        Analiza las siguientes fuentes y extrae exactamente **3 temas o conceptos principales** del contenido.
+        Eres un experto en análisis de contenido académico. Tu tarea es identificar los temas principales de un conjunto de documentos académicos.
+        
+        De acuerdo al siguiente contenido proveniente de varias fuentes académicas (PDFs, páginas web o videos):
+        
+        {fuentes_contenido}
 
-        Devuélvelos **ESPECIFICAMENTE** en forma de lista numerada, SIN introducciones o conclusiones.
+        1. Selecciona exactamente **3 temas generales o conceptos principales** que representen el contenido total.
+        2. Devuélvelos **ESPECIFICAMENTE** en forma de lista numerada, sin introducciones o conclusiones.
 
-        Texto:
-        {docs[:3000]}
-    """
+        El contenido puede ser extenso, asegúrate de analizarlo completamente."""
+
     messages = [HumanMessage(content=prompt)]
     response = llm.invoke(messages)
     temas = response.content.strip().split("\n")

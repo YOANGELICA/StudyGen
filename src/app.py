@@ -44,6 +44,8 @@ def render_question(texto: str):
             st.markdown(f"**✅ Respuesta:** {respuesta}")
             st.markdown(f"**💡 Explicación:** {explicacion}")
 
+if "document_blocks" not in st.session_state:
+    st.session_state.document_blocks = []
 
 st.set_page_config(page_title="StudyGen", page_icon="📘")
 st.title("📘 StudyGen – Guía de Estudios Personalizada")
@@ -133,7 +135,8 @@ else:
                 with st.spinner("Procesando PDF..."):
                     splits = load_pdf("temp_uploaded.pdf")
                     st.session_state.vector_store = embed_documents(splits, st.session_state.get("vector_store"))
-                    st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([s.page_content for s in splits])
+                    # st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([s.page_content for s in splits])
+                    st.session_state.document_blocks.append("\n".join([s.page_content for s in splits]))
 
                 os.remove("temp_uploaded.pdf")
                 st.session_state.any_content_loaded = True
@@ -148,7 +151,8 @@ else:
                     with st.spinner("Procesando página web..."):
                         docs = load_web_url(url)
                         st.session_state.vector_store = embed_documents(docs, st.session_state.get("vector_store"))
-                        st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([d.page_content for d in docs])
+                        # st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([d.page_content for d in docs])
+                        st.session_state.document_blocks.append("\n".join([d.page_content for d in docs]))
                     st.session_state.any_content_loaded = True
                     st.success("Página agregada correctamente.")
 
@@ -163,7 +167,8 @@ else:
                             if not docs:
                                 raise ValueError("No se pudo obtener la transcripción del video.")
                             st.session_state.vector_store = embed_documents(docs, st.session_state.get("vector_store"))
-                            st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([d.page_content for d in docs])
+                            # st.session_state.document_text = st.session_state.get("document_text", "") + "\n".join([d.page_content for d in docs])
+                            st.session_state.document_blocks.append("\n".join([d.page_content for d in docs]))
                             st.session_state.any_content_loaded = True
                             st.success("Video agregado correctamente.")
                         except Exception as e:
@@ -188,7 +193,7 @@ else:
                 left, middle, right = st.columns([1,2,1], vertical_alignment="center")
                 with middle:
                     with st.spinner("🧠 Extrayendo temas principales..."):
-                        st.session_state.temas = extract_main_topics(st.session_state.document_text)
+                        st.session_state.temas = extract_main_topics(st.session_state.document_blocks)
 
 
     # === Mostrar temas y generar preguntas ===
