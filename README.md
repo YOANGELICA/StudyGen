@@ -37,7 +37,7 @@ ollama pull nomic-embed-text
 * `nomic-embed-text` para generar los embeddings vectoriales.
 
 
-### 4. Instala dependencias (usando `uv` o `pip`)
+### 4. Instala dependencias
 
 Este proyecto usa `uv`.
 
