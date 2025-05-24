@@ -68,7 +68,7 @@ def extract_main_topics(document_blocks: list[str], llm=None):
         {fuentes_contenido}
 
         1. Selecciona exactamente **3 temas generales o conceptos principales** que representen el contenido total.
-        2. Devuélvelos **ESPECIFICAMENTE** en forma de lista numerada, sin introducciones o conclusiones.
+        2. Devuélvelos **ESPECIFICAMENTE** en forma de lista numerada, SIN introducciones o conclusiones antes o después de los temas.
 
         El contenido puede ser extenso, asegúrate de analizarlo completamente."""
 
@@ -76,7 +76,9 @@ def extract_main_topics(document_blocks: list[str], llm=None):
     response = llm.invoke(messages)
     temas = response.content.strip().split("\n")
     temas = [t.strip("-•1234567890. ").strip() for t in temas if t.strip()]
-    return temas[:3]
+
+    # print("Temas extraídos:", temas)
+    return temas[-3:]
 
 
 def generate_questions(selected_topic: str, vector_store, llm=None, top_p=0.9, temperature=0.7, top_k=40):
